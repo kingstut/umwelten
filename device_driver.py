@@ -7,12 +7,14 @@ class BOS1901Driver(HapticDevice):
     def __init__(self, bus=0, device=0, max_speed_hz=35000000):
         self.spi = spidev.SpiDev()
         self.spi.open(bus, device)  # Bus and device values; adjust accordingly
-        self.spi.mode = 0  # Confirm from BOS1901 datasheet
+        self.spi.mode = 'UPI'  # Confirm from BOS1901 datasheet
         self.spi.max_speed_hz = max_speed_hz
         self.spi.bits_per_word = 16
     
     def send_command(self, command):
         # SPI communication details here
+        to_send = [0x01, 0x02, 0x03]
+        self.spi.xfer(to_send)
         pass
 
     def play_pattern(self, pattern):
