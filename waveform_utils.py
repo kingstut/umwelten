@@ -30,11 +30,3 @@ def visualize_waveform(waveform, sample_rate):
     plt.grid()
     plt.show()
 
-if __name__ == "__main__":
-    frequency = 1.0  # 1 Hz for example purposes
-    amplitude = 0.9  # 0.9 amplitude for example purposes
-    sample_rate = 1000  # 1000 samples/second
-    duration = 5  # 5 seconds
-
-    waveform = generate_waveform(frequency, amplitude, sample_rate, duration)
-    visualize_waveform(waveform, sample_rate)
