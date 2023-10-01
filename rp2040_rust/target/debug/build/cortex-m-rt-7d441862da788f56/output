@@ -1,0 +1,3 @@
+cargo:rustc-link-search=/Users/stutiraizada/Desktop/git/umwelten/rp2040_rust/target/debug/build/cortex-m-rt-7d441862da788f56/out
+cargo:rerun-if-changed=build.rs
+cargo:rerun-if-changed=link.x.in

@@ -1,0 +1,1 @@
+{"rustc":16505316612848540575,"features":"[\"critical-section\"]","target":2297296889237502566,"profile":16209747773763956088,"path":1401940932514620260,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/rp2040-pac-f32d790f5412d9ff/dep-build-script-build-script-build"}}],"rustflags":[],"metadata":12946967241980814622,"config":2202906307356721367,"compile_kind":0}
