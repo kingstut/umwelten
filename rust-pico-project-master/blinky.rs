@@ -82,7 +82,7 @@ fn main() -> ! {
     );
 
     // Configure GPIO12 as an output
-    let mut led_pin = pins.gpio12.into_push_pull_output();
+    let mut led_pin = pins.gpio21.into_push_pull_output();
     loop {
         led_pin.set_high().unwrap();
         delay.delay_ms(500);
