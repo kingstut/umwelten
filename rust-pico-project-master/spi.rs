@@ -31,7 +31,7 @@ use rp2040_hal::clocks::Clock;
 // A shorter alias for the Peripheral Access Crate, which provides low-level
 // register access
 use hal::pac;
-use embedded_hal::digital::v2::OutputPin;
+//use embedded_hal::digital::v2::OutputPin;
 //use cortex_m::delay::Delay
 
 /// The linker will place this boot block at the start of our program image. We
@@ -85,15 +85,8 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    //blinky utils
     let core = pac::CorePeripherals::take().unwrap();
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
-    let mut led_pin = pins.gpio16.into_push_pull_output();
-
-    led_pin.set_high().unwrap();
-    delay.delay_ms(500);
-    led_pin.set_low().unwrap();
-    delay.delay_ms(500);
 
     // These are implicitly used by the spi driver if they are in the correct mode
     let _spi_mosi = pins.gpio7.into_mode::<hal::gpio::FunctionSpi>();
@@ -110,50 +103,52 @@ fn main() -> ! {
         &embedded_hal::spi::MODE_0,
     );
 
-    // Write out 0, ignore return value
-    if spi.write(&[0]).is_ok() {
-        // SPI write was succesful
-        log::info!("write worked");
-    }
-    else {log::error!("write failed");};
+    // Reset the BOS1901
+    let config_register_address = 0x05; // Address of the CONFIG register
+    let reset_value = 0x1 << 5;  // Set the RST bit
+    spi.write(&[config_register_address, reset_value]).unwrap();
 
-    // write 50, then check the return
-    let send_success = spi.send(50);
-    match send_success {
-        Ok(_) => {
-            // We succeeded, check the read value
-            if let Ok(x) = spi.read() {
-                // We got back `x` in exchange for the 0x50 we sent.
-                log::info!("read worked, rec {}", x);
-            };
-        }
-        Err(_) => log::error!("read failed")
+    // Enable the Output
+    let output_enable_value = 0x1 << 4;  // Set the OE bit
+    spi.write(&[config_register_address, output_enable_value]).unwrap();
+
+    let sup_rise_register_address = 0x7; // Address of the SUP_RISE register
+    let sense_bit_value = 0x0;  // Value to set the SENSE bit to 0
+    spi.write(&[sup_rise_register_address, sense_bit_value]).unwrap();
+
+    // Example: Sending a sample to the BOS1901's FIFO
+    let reference_register_address = 0x00; // Based on the document
+    // Define the high and low values for the square wave
+    let high_value: u16 = 0x000;
+    let low_value: u16 = 0xFFF;
+
+    // Split the values into two u8 values for SPI transmission
+    let high_value_high = (high_value >> 8) as u8;
+    let high_value_low = (high_value & 0xFF) as u8;
+    let low_value_high = (low_value >> 8) as u8;
+    let low_value_low = (low_value & 0xFF) as u8;
+
+    // Number of times to alternate between high and low values
+    let repetitions = 10;
+
+    // Send the square wave to the FIFO
+    for _ in 0..repetitions {
+        // Send high value
+        spi.write(&[reference_register_address, high_value_high, high_value_low]).unwrap();
+        // Delay to maintain the high value for a certain duration (adjust as needed)
+        delay.delay_ms(500);
+
+        // Send low value
+        spi.write(&[reference_register_address, low_value_high, low_value_low]).unwrap();
+        // Delay to maintain the low value for a certain duration (adjust as needed)
+        delay.delay_ms(500);
     }
 
-    // Do a read+write at the same time. Data in `buffer` will be replaced with
-    // the data read from the SPI device.
-    //let mut buffer: [u8; 4] = [1, 2, 3, 4];
-    let mut buffer = [0x05, 0x01, 0x01, 0x02];
-    let transfer_success = spi.transfer(&mut buffer);
-    #[allow(clippy::single_match)]
-    match transfer_success {
-        Ok(out) => {
-            for i in 0..out.len() {
-                led_pin.set_high().unwrap();
-                delay.delay_ms(500);
-                led_pin.set_low().unwrap();
-                delay.delay_ms(500);
-                for _ in 0..out[i] {
-                    led_pin.set_high().unwrap();
-                    delay.delay_ms(500);
-                    led_pin.set_low().unwrap();
-                    delay.delay_ms(500);
-                }
-                delay.delay_ms(2000);
-            }
-        }  // Handle success
-        Err(_) => {log::error!("read+write failed")} // handle errors
-    };
+    // After sending the square wave, send the stabilization value
+    let stabilization_value: u16 = 0x0FFF; // Small negative voltage
+    let stabilization_value_high = (stabilization_value >> 8) as u8;
+    let stabilization_value_low = (stabilization_value & 0xFF) as u8;
+    spi.write(&[reference_register_address, stabilization_value_high, stabilization_value_low]).unwrap();
 
     loop {
         cortex_m::asm::wfi();
